@@ -5,12 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ai-obliterator"
 version = "0.1.0"
-description = "A super basic CLI tool."
+description = "Strip AI writing artifacts from text files."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Fred" }]
-keywords = ["cli"]
+keywords = ["cli", "linter", "formatter"]
+dependencies = ["PyYAML>=6"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -24,4 +25,4 @@ classifiers = [
 ai-obliterator = "cli:main"
 
 [tool.setuptools.packages.find]
-include = ["cli*", "commands*"]
+include = ["cli*", "commands*", "obliterate*"]

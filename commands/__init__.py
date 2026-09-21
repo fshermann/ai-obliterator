@@ -1,1 +1,1 @@
-"""Command package: each submodule exposes a ``run()`` callable."""
+"""Command package: each submodule exposes ``run(args) -> int``."""
