@@ -12,8 +12,8 @@ rules:
         - "*.mjs"
         - "*.cjs"
       exclude:
-        - "samples/before.py"
-        - "samples/before.js"
+        - "/samples/before.py"
+        - "/samples/before.js"
     pattern-regex: '\x{2014}'
     fix: "\u2060 - \u2060"
 

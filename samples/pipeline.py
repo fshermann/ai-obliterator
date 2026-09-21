@@ -15,7 +15,7 @@ FIXTURES = ("before.py", "before.js")
 
 
 def main() -> int:
-    semgrep = [sys.executable, "-m", "semgrep"]
+    semgrep = _semgrep_command()
     with tempfile.TemporaryDirectory() as tmp:
         workspace = Path(tmp)
         for name in FIXTURES:
@@ -67,6 +67,19 @@ def main() -> int:
                 )
                 return 1
     return 0
+
+
+def _semgrep_command() -> list[str]:
+    directories = [Path(sys.executable).parent, Path(sys.prefix) / "bin", Path(sys.prefix) / "Scripts"]
+    found = shutil.which("semgrep")
+    if found:
+        directories.insert(0, Path(found).parent)
+    for directory in directories:
+        for name in ("semgrep", "semgrep.exe"):
+            candidate = directory / name
+            if candidate.is_file():
+                return [str(candidate)]
+    return ["semgrep"]
 
 
 def _snapshot(directory: Path) -> dict[str, bytes]:
