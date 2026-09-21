@@ -1,103 +1,67 @@
 # ai-obliterator
 
-Strip AI writing artifacts from text files. `check` reports them and fails the
-process. `fix` rewrites files in place. Rules live in `exodia.yml`.
+Semgrep rules that strip AI writing artifacts from Python and JavaScript.
+One ruleset, `semgrep/ai-artifacts.yml`, covers both languages. `check` is
+`semgrep scan --error`. `fix` is `semgrep scan --autofix`, run until the files
+stop changing.
 
 ## Usage
 
 ```sh
-ai-obliterator check .
-ai-obliterator fix .
-ai-obliterator check path/to/file.md
-ai-obliterator fix - < draft.md
+python -m pip install -e .
+semgrep scan --config semgrep/ai-artifacts.yml --error --metrics=off .
+semgrep scan --config semgrep/ai-artifacts.yml --autofix --metrics=off .
+semgrep scan --config semgrep/ai-artifacts.yml --autofix --metrics=off .
 ```
 
-With no path, the command scans the current directory. `check` prints
-`file:line:column: rule: snippet` and exits 1 when it finds anything. `fix`
-prints the paths it changed and exits 0. Exit 2 means a bad config, a missing
-path, or an unreadable file.
+The second autofix removes U+2060 word joiners. Semgrep trims spaces from a
+fix, so the em dash and non-breaking space replacements are padded with word
+joiners and a follow-up rule deletes that padding. It also finishes emoji
+sequences whose joiners were removed by the zero-width rule.
 
-`--config` / `-c` selects a config file. Without it, the tool walks upward from
-the working directory for `exodia.yml`. `--format json` prints a single JSON
-object. `fix -` always writes the rewritten text to stdout.
+Semgrep exits 1 when `--error` finds a match. A bad config or an unreadable
+target is a Semgrep error exit.
 
 ## Rules
 
-Built-in rules ship with the tool. `exodia.yml` turns them off or replaces
-their replacement text. `custom` adds Python regular expressions; those
-replacements can use backreferences. Built-in replacements stay literal.
+The rules use Semgrep generic mode, limited to Python and JavaScript paths, so
+the same text replacement applies in code, strings, and comments.
 
-| id | match | default replacement | default |
-|---|---|---|---|
-| `em-dash` | U+2014 | ` - ` | on |
-| `en-dash` | U+2013 | `-` | on |
-| `horizontal-bar` | U+2015 | `-` | on |
-| `minus-sign` | U+2212 | `-` | on |
-| `ellipsis` | U+2026 | `...` | on |
-| `smart-double-quotes` | U+201C U+201D | `"` | on |
-| `smart-single-quotes` | U+2018 U+2019 | `'` | on |
-| `nbsp` | U+00A0 | space | on |
-| `zero-width` | U+200B U+200C U+200D U+FEFF | empty | on |
-| `emoji` | emoji and pictographs, including ZWJ sequences | empty | on |
-| `collapse-space` | repeated spaces after a non-space | one space | off |
+| id | match | replacement |
+|---|---|---|
+| `em-dash` | U+2014 | spaced hyphen |
+| `en-dash` | U+2013 | `-` |
+| `horizontal-bar` | U+2015 | `-` |
+| `minus-sign` | U+2212 | `-` |
+| `ellipsis` | U+2026 | `...` |
+| `smart-double-quotes` | U+201C U+201D | `"` |
+| `smart-single-quotes` | U+2018 U+2019 | `'` |
+| `nbsp` | U+00A0 | space |
+| `zero-width` | U+200B U+200C U+200D U+FEFF | empty |
+| `emoji` | emoji and pictographs, including ZWJ sequences | empty |
+| `no-ai-phrase` | `delve\s+into` | `look at` |
+| `fix-padding` | U+2060 | empty |
 
-Dashes and punctuation run first, then invisible characters and emoji, then
-`custom` rules. `collapse-space` runs last when you enable it. Line and column
-refer to the original file.
-
-Directory scans use `include` and `exclude`. An explicit file path is scanned
-either way. The loaded config file is skipped during directory scans. `.git`,
-virtualenvs, `__pycache__`, `dist`, `build`, and `*.egg-info` are always
-skipped. Binary files and files that are not UTF-8 are skipped.
+`samples/before.py` and `samples/before.js` are excluded so the repository
+check stays clean. Every other `*.py` and `*.js` file is included.
 
 ## Sample pipeline
 
-`.github/workflows/obliterator.yml` installs the package, runs
-`ai-obliterator check .`, then runs the sample fixer:
+`.github/workflows/obliterator.yml` installs this project, scans the
+repository, then runs:
 
 ```sh
 python samples/pipeline.py
 ```
 
-That script copies `samples/before.md`, runs `fix`, runs `check`, and compares
-the result with `samples/after.md`. `samples/` is excluded from the repository
-check because the input file still contains artifacts.
+That script copies the fixtures, autofixes them, checks them, and compares the
+result with `samples/after.py` and `samples/after.js`.
 
 ## Project layout
 
 ```
-run.py
-cli/__init__.py
-commands/check.py
-commands/fix.py
-obliterate/
-exodia.yml
+semgrep/ai-artifacts.yml
 samples/pipeline.py
 .github/workflows/obliterator.yml
+pyproject.toml
 ```
-
-### Adding a command
-
-1. Create `commands/<name>.py` exposing `def run(args) -> int`.
-2. Register it in `COMMANDS` in `cli/__init__.py` and add a subparser.
-
-## Development
-
-Requires Python 3.10+.
-
-```sh
-python -m pip install -e .
-ai-obliterator check .
-python samples/pipeline.py
-```
-
-## Building an executable
-
-```sh
-pip install -r requirements-dev.txt
-pyinstaller --clean pyinstaller.spec
-```
-
-The standalone binary is produced at `dist/ai-obliterator.exe` (Windows) or
-`dist/ai-obliterator` (Linux/macOS). Collect the `commands` and `obliterate`
-packages so the frozen binary keeps the dispatch targets and the rule engine.

@@ -1,43 +1,76 @@
-"""Run fix, then check, on a copy of the sample document."""
+"""Copy the fixtures, autofix them with Semgrep, then check the result."""
 
 from __future__ import annotations
 
 import difflib
+import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+RULES = ROOT / "semgrep" / "ai-artifacts.yml"
+FIXTURES = ("before.py", "before.js")
 
 
 def main() -> int:
-    before = ROOT / "samples" / "before.md"
-    expected_path = ROOT / "samples" / "after.md"
-    expected = expected_path.read_bytes()
-    config = str(ROOT / "exodia.yml")
-    tool = [sys.executable, str(ROOT / "run.py")]
+    semgrep = [sys.executable, "-m", "semgrep"]
     with tempfile.TemporaryDirectory() as tmp:
-        target = Path(tmp) / "sample.md"
-        target.write_bytes(before.read_bytes())
-        fix = subprocess.run([*tool, "fix", str(target), "--config", config], cwd=ROOT)
-        if fix.returncode != 0:
-            return fix.returncode
-        check = subprocess.run([*tool, "check", str(target), "--config", config], cwd=ROOT)
+        workspace = Path(tmp)
+        for name in FIXTURES:
+            shutil.copyfile(ROOT / "samples" / name, workspace / name)
+        for _ in range(3):
+            before = _snapshot(workspace)
+            completed = subprocess.run(
+                [
+                    *semgrep,
+                    "scan",
+                    "--config",
+                    str(RULES),
+                    "--autofix",
+                    "--metrics=off",
+                    str(workspace),
+                ],
+                cwd=ROOT,
+            )
+            if completed.returncode not in (0, 1):
+                return completed.returncode
+            if _snapshot(workspace) == before:
+                break
+        check = subprocess.run(
+            [
+                *semgrep,
+                "scan",
+                "--config",
+                str(RULES),
+                "--error",
+                "--metrics=off",
+                str(workspace),
+            ],
+            cwd=ROOT,
+        )
         if check.returncode != 0:
             return check.returncode
-        actual = target.read_bytes()
-        if actual != expected:
-            sys.stderr.writelines(
-                difflib.unified_diff(
-                    expected.decode("utf-8").splitlines(keepends=True),
-                    actual.decode("utf-8").splitlines(keepends=True),
-                    fromfile="samples/after.md",
-                    tofile="pipeline output",
+        for name in FIXTURES:
+            expected_path = ROOT / "samples" / name.replace("before", "after")
+            expected = expected_path.read_bytes()
+            actual = (workspace / name).read_bytes()
+            if actual != expected:
+                sys.stderr.writelines(
+                    difflib.unified_diff(
+                        expected.decode("utf-8").splitlines(keepends=True),
+                        actual.decode("utf-8").splitlines(keepends=True),
+                        fromfile=str(expected_path.relative_to(ROOT)),
+                        tofile=name,
+                    )
                 )
-            )
-            return 1
+                return 1
     return 0
+
+
+def _snapshot(directory: Path) -> dict[str, bytes]:
+    return {path.name: path.read_bytes() for path in sorted(directory.iterdir())}
 
 
 if __name__ == "__main__":

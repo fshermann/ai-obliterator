@@ -1,0 +1,106 @@
+rules:
+  - id: em-dash
+    languages: [generic]
+    severity: ERROR
+    message: Replace the em dash with a spaced hyphen.
+    paths: &targets
+      include:
+        - "*.py"
+        - "*.pyi"
+        - "*.js"
+        - "*.jsx"
+        - "*.mjs"
+        - "*.cjs"
+      exclude:
+        - "samples/before.py"
+        - "samples/before.js"
+    pattern-regex: '\x{2014}'
+    fix: "\u2060 - \u2060"
+
+  - id: en-dash
+    languages: [generic]
+    severity: ERROR
+    message: Replace the en dash.
+    paths: *targets
+    pattern-regex: '\x{2013}'
+    fix: "-"
+
+  - id: horizontal-bar
+    languages: [generic]
+    severity: ERROR
+    message: Replace the horizontal bar.
+    paths: *targets
+    pattern-regex: '\x{2015}'
+    fix: "-"
+
+  - id: minus-sign
+    languages: [generic]
+    severity: ERROR
+    message: Replace the minus sign.
+    paths: *targets
+    pattern-regex: '\x{2212}'
+    fix: "-"
+
+  - id: ellipsis
+    languages: [generic]
+    severity: ERROR
+    message: Replace the ellipsis.
+    paths: *targets
+    pattern-regex: '\x{2026}'
+    fix: "..."
+
+  - id: smart-double-quotes
+    languages: [generic]
+    severity: ERROR
+    message: Replace smart double quotes.
+    paths: *targets
+    pattern-regex: '[\x{201C}\x{201D}]'
+    fix: '"'
+
+  - id: smart-single-quotes
+    languages: [generic]
+    severity: ERROR
+    message: Replace smart single quotes.
+    paths: *targets
+    pattern-regex: '[\x{2018}\x{2019}]'
+    fix: "'"
+
+  - id: nbsp
+    languages: [generic]
+    severity: ERROR
+    message: Replace the non-breaking space.
+    paths: *targets
+    pattern-regex: '\x{00A0}'
+    fix: "\u2060 \u2060"
+
+  - id: zero-width
+    languages: [generic]
+    severity: ERROR
+    message: Remove zero-width characters.
+    paths: *targets
+    pattern-regex: '[\x{200B}\x{200C}\x{200D}\x{FEFF}]'
+    fix: ""
+
+  - id: emoji
+    languages: [generic]
+    severity: ERROR
+    message: Remove emoji.
+    paths: *targets
+    pattern-regex: '(?:[#*0-9]\x{FE0F}?\x{20E3}|[\x{1F1E6}-\x{1F1FF}]{2}|(?:[\x{2600}-\x{26FF}\x{2700}-\x{27BF}\x{2B50}\x{2B55}\x{1F300}-\x{1F5FF}\x{1F600}-\x{1F64F}\x{1F680}-\x{1F6FF}\x{1F900}-\x{1FAFF}]\x{FE0F}?[\x{1F3FB}-\x{1F3FF}]?(?:\x{200D}[\x{2600}-\x{26FF}\x{2700}-\x{27BF}\x{2B50}\x{2B55}\x{1F300}-\x{1F5FF}\x{1F600}-\x{1F64F}\x{1F680}-\x{1F6FF}\x{1F900}-\x{1FAFF}]\x{FE0F}?[\x{1F3FB}-\x{1F3FF}]?)*))'
+    fix: ""
+
+  - id: no-ai-phrase
+    languages: [generic]
+    severity: ERROR
+    message: Replace the phrase.
+    paths: *targets
+    pattern-regex: 'delve\s+into'
+    fix: "look at"
+
+  - id: fix-padding
+    languages: [generic]
+    severity: ERROR
+    message: Remove U+2060 word joiners used so spaced replacements survive autofix.
+    paths: *targets
+    pattern-regex: '\x{2060}'
+    fix: ""
