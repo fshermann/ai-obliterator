@@ -4,24 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-obliterator"
-version = "0.1.0"
-description = "A super basic CLI tool."
+version = "0.2.0"
+description = "Semgrep rules that strip AI writing artifacts from Python and JavaScript."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Fred" }]
-keywords = ["cli"]
+keywords = ["linter", "semgrep", "python", "javascript"]
+dependencies = ["semgrep==1.177.0"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
-    "Topic :: Utilities",
+    "Topic :: Software Development :: Quality Assurance",
 ]
 
-[project.scripts]
-ai-obliterator = "cli:main"
-
-[tool.setuptools.packages.find]
-include = ["cli*", "commands*"]
+[tool.setuptools]
+packages = []

@@ -4,64 +4,54 @@ Notes for AI coding agents working in this repository.
 
 ## Project
 
-`ai-obliterator` — a tiny Python CLI demo. Two flags (`--foo`/`-f`, `--bar`/`-b`),
-each handled by a separate module under `commands/`.
+`ai-obliterator` is a Semgrep ruleset. It strips AI writing artifacts from
+Python and JavaScript: dashes, smart quotes, ellipsis, non-breaking spaces,
+zero-width characters, emoji, and one custom phrase. The rules live in
+`semgrep/ai-artifacts.yml`.
 
 ## Environment
 
-- Windows, PowerShell 5.1.
-- Python 3.12, virtualenv at `.venv/`.
-- Always invoke Python and tools via the venv, never system Python:
-  - `.venv\Scripts\python.exe`
-  - `.venv\Scripts\pip.exe`
-  - `.venv\Scripts\pyinstaller.exe`
-  - `.venv\Scripts\ai-obliterator.exe` (installed console script)
+- Windows, PowerShell 5.1, or the Linux CI image.
+- Python 3.12. Install Semgrep with `python -m pip install -e .`
+  (pinned in `pyproject.toml`).
+- Invoke Semgrep as `semgrep` or `python -m semgrep`.
 
 ## Layout
 
 ```
-run.py                 # entry point, calls cli.main
-cli/__init__.py        # argparse parser + dispatch table (COMMANDS dict)
-commands/              # one file per command, each exposes run()
-    __init__.py
-    foo.py
-    bar.py
-pyproject.toml         # project metadata; [project.scripts] -> ai-obliterator
-requirements-dev.txt   # pyinstaller
-pyinstaller.spec       # one-file build config
+semgrep/ai-artifacts.yml          # the rules
+samples/before.py                 # dirty fixture, excluded from the repo scan
+samples/before.js
+samples/after.py                  # expected autofix output
+samples/after.js
+samples/pipeline.py               # autofix, check, compare
+.github/workflows/obliterator.yml
+pyproject.toml
 README.md
-.gitignore
 ```
-
-The package layout is intentional: `cli/` is a directory (not `cli.py`) so the
-editable install and the `ai-obliterator` console script resolve correctly.
-**Do not** flatten `cli/` back into a single `cli.py` file — it breaks
-`pip install -e .` on this setup.
 
 ## Conventions
 
-- Each command module under `commands/` exposes a single `def run() -> None: ...`.
-- To add a command: create the file, then register it in the `COMMANDS` dict
-  in `cli/__init__.py` and add the `argparse` flag in `build_parser()`.
+- Add or change a substitution in `semgrep/ai-artifacts.yml`. Keep
+  `languages: [generic]` and the shared `paths` anchor so Python and
+  JavaScript stay on the same rules.
+- A fix that is only spaces will be trimmed by Semgrep. Pad it with U+2060
+  and let `fix-padding` remove the padding on the next autofix pass.
+- Run autofix twice, or until the files stop changing, then
+  `semgrep scan --config semgrep/ai-artifacts.yml --error --metrics=off .`
 - No comments in code unless the user explicitly asks for them.
-- Prefer stdlib only. The only dev dep is PyInstaller.
-- Don't add lint/format/test config proactively — the user has not asked for it.
+- Don't add lint, format, or test config proactively.
 
-## Build
+## Pipeline
 
-```sh
-.venv\Scripts\pyinstaller.exe --clean pyinstaller.spec
-# output: dist/ai-obliterator.exe
-```
-
-`pyinstaller.spec` uses `collect_submodules('commands')` so the dispatch
-targets survive freezing — keep that if you change the commands package.
+`.github/workflows/obliterator.yml` installs the project, scans the
+repository, then runs `samples/pipeline.py`.
 
 ## Things to avoid
 
-- Don't run `pyinstaller` against `run.py` directly with ad-hoc flags; use the
-  spec file so hiddenimports stay in sync.
-- Don't commit `.venv/`, `build/`, `dist/`, `*.spec` are already in `.gitignore`
-  for some entries — check `.gitignore` before adding new artifacts.
+- Don't replace this ruleset with a hand-rolled scanner.
+- Don't scan `samples/before.py` or `samples/before.js` in the repository
+  check. Those fixtures are excluded because they still contain artifacts.
+- Don't commit `.venv/`, `build/`, or `dist/`.
 - Don't use `Set-Location` (cd) in bash commands; use the `workdir` parameter.
 - Don't use `&&` to chain PowerShell commands; use `; if ($?) { ... }` instead.

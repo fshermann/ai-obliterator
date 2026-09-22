@@ -1,63 +1,67 @@
 # ai-obliterator
 
-A super basic Python CLI tool.
+Semgrep rules that strip AI writing artifacts from Python and JavaScript.
+One ruleset, `semgrep/ai-artifacts.yml`, covers both languages. `check` is
+`semgrep scan --error`. `fix` is `semgrep scan --autofix`, run until the files
+stop changing.
 
 ## Usage
 
 ```sh
-python run.py --foo   # prints: foo
-python run.py -f      # short form
-python run.py --bar   # prints: bar
-python run.py -b      # short form
-python run.py -f -b   # prints: foo then bar
-python run.py --help  # show help
+python -m pip install -e .
+semgrep scan --config semgrep/ai-artifacts.yml --error --metrics=off .
+semgrep scan --config semgrep/ai-artifacts.yml --autofix --metrics=off .
+semgrep scan --config semgrep/ai-artifacts.yml --autofix --metrics=off .
 ```
 
-Running with no flags prints help to stderr and exits with code 1.
+The second autofix removes U+2060 word joiners. Semgrep trims spaces from a
+fix, so the em dash and non-breaking space replacements are padded with word
+joiners and a follow-up rule deletes that padding. It also finishes emoji
+sequences whose joiners were removed by the zero-width rule.
+
+Semgrep exits 1 when `--error` finds a match. A bad config or an unreadable
+target is a Semgrep error exit.
+
+## Rules
+
+The rules use Semgrep generic mode, limited to Python and JavaScript paths, so
+the same text replacement applies in code, strings, and comments.
+
+| id | match | replacement |
+|---|---|---|
+| `em-dash` | U+2014 | spaced hyphen |
+| `en-dash` | U+2013 | `-` |
+| `horizontal-bar` | U+2015 | `-` |
+| `minus-sign` | U+2212 | `-` |
+| `ellipsis` | U+2026 | `...` |
+| `smart-double-quotes` | U+201C U+201D | `"` |
+| `smart-single-quotes` | U+2018 U+2019 | `'` |
+| `nbsp` | U+00A0 | space |
+| `zero-width` | U+200B U+200C U+200D U+FEFF | empty |
+| `emoji` | emoji and pictographs, including ZWJ sequences | empty |
+| `no-ai-phrase` | `delve\s+into` | `look at` |
+| `fix-padding` | U+2060 | empty |
+
+`samples/before.py` and `samples/before.js` are excluded so the repository
+check stays clean. Every other `*.py` and `*.js` file is included.
+
+## Sample pipeline
+
+`.github/workflows/obliterator.yml` installs this project, scans the
+repository, then runs:
+
+```sh
+python samples/pipeline.py
+```
+
+That script copies the fixtures, autofixes them, checks them, and compares the
+result with `samples/after.py` and `samples/after.js`.
 
 ## Project layout
 
 ```
-ai-obliterator/
-├── run.py              # entry point
-├── cli.py              # argparse parser + command dispatch
-├── commands/
-│   ├── __init__.py
-│   ├── foo.py          # --foo / -f
-│   └── bar.py          # --bar / -b
-├── pyproject.toml      # project metadata + build config
-├── requirements-dev.txt
-└── .gitignore
-```
-
-### Adding a new command
-
-1. Create `commands/<name>.py` exposing `def run() -> None: ...`.
-2. Register it in `COMMANDS` in `cli.py` and add an `argparse` flag.
-
-## Development
-
-Requires Python 3.10+.
-
-```sh
-python run.py --help
-```
-
-## Building an executable
-
-The project ships with a PyInstaller spec. From the project root:
-
-```sh
-pip install -r requirements-dev.txt
-pyinstaller --clean pyinstaller.spec
-```
-
-The standalone binary is produced at `dist/ai-obliterator.exe` (Windows) or
-`dist/ai-obliterator` (Linux/macOS).
-
-To rebuild from scratch:
-
-```sh
-rm -rf build dist
-pyinstaller --clean pyinstaller.spec
+semgrep/ai-artifacts.yml
+samples/pipeline.py
+.github/workflows/obliterator.yml
+pyproject.toml
 ```
