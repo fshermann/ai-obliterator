@@ -23,6 +23,7 @@ rules:
         - "/samples/before.js"
         - "/samples/before.ts"
         - "/samples/before.tf"
+        - "/samples/phrases.py"
     pattern-regex: '\x{2014}'
     fix: "\u2060 - \u2060"
 
@@ -101,10 +102,140 @@ rules:
   - id: no-ai-phrase
     languages: [generic]
     severity: ERROR
-    message: Replace the phrase.
+    message: Replace "delve into" with "look at".
     paths: *targets
-    pattern-regex: 'delve\s+into'
+    pattern-regex: '(?i)\bdelve\s+into\b'
     fix: "look at"
+
+  - id: ai-phrase
+    languages: [generic]
+    severity: ERROR
+    message: This AI writing phrase is not allowed.
+    paths: *targets
+    pattern-regex: '(?ix)\b(?:
+      in\s+today(?:''|\x{2019})s\s+fast-paced\s+world
+      | navigate\s+the\s+complexities
+      | navigating\s+the\s+landscape
+      | plays\s+a\s+pivotal\s+role
+      | at\s+the\s+forefront\s+of
+      | state-of-the-art
+      | a\s+testament\s+to
+      | paradigm\s+shift
+      | groundbreaking
+      | transformative
+      | revolutionary
+      | unprecedented
+      | rich\s+tapestry
+      | ever-evolving
+      | unparalleled
+      | cutting-edge
+      | game-changer
+      | multifaceted
+      | testament\s+to
+      | a\s+beacon\s+of
+      | seamlessly
+      | tapestry
+      | seamless
+      | holistic
+      | pivotal
+      | delve(?!\s+into\b)
+      )\b'
+
+  - id: ai-wording
+    languages: [generic]
+    severity: WARNING
+    message: This wording is a common AI artifact.
+    paths: *targets
+    pattern-regex: '(?isx)(?:
+      \bit(?:''|\x{2019})s\s+important\s+to\s+note\s+that\b
+      | \bit\s+is\s+important\s+to\s+note\s+that\b
+      | \bit(?:''|\x{2019})s\s+worth\s+noting\s+that\b
+      | \bit\s+is\s+worth\s+noting\s+that\b
+      | \bit(?:''|\x{2019})s\s+worth\s+considering\b
+      | \bit\s+is\s+worth\s+considering\b
+      | \btaking\s+this\s+a\s+step\s+further\b
+      | \bone\s+of\s+the\s+most\s+important\b
+      | \bthere\s+are\s+several\s+factors\b
+      | \bthere\s+are\s+a\s+number\s+of\b
+      | \bat\s+the\s+end\s+of\s+the\s+day\b
+      | \ba\s+key\s+consideration\s+is\b
+      | \bon\s+the\s+other\s+hand\b
+      | \bon\s+the\s+one\s+hand\b
+      | \bwith\s+that\s+in\s+mind\b
+      | \bthat\s+being\s+said\b
+      | \bin\s+the\s+ever-evolving\b
+      | \bwhen\s+it\s+comes\s+to\b
+      | \bbuilding\s+on\s+this\b
+      | \bthis\s+underscores\b
+      | \bthis\s+demonstrates\b
+      | \bthis\s+highlights\b
+      | \bthis\s+serves\s+as\b
+      | \bas\s+we\s+navigate\b
+      | \bin\s+conclusion\b
+      | \bnot\s+only\b.{1,80}?\bbut\s+also\b
+      | \bin\s+today(?:''|\x{2019})s\b(?!\s+fast-paced\s+world\b)
+      | \boverall,
+      | \bultimately,
+      | \bfurthermore,
+      | \bmoreover,
+      | \badditionally,
+      | (?<!navigating\sthe\s)\blandscape\b
+      | \bcomprehensive\b
+      | \bunderscores\b
+      | \bintricacies\b
+      | \bcornerstone\b
+      | \bexceptional\b
+      | \bleveraging\b
+      | \bunderscore\b
+      | \bmeticulous\b
+      | \bnoteworthy\b
+      | \btrajectory\b
+      | \bstreamline\b
+      | \bactionable\b
+      | \binnovative\b
+      | \bfacilitate\b
+      | \bremarkable\b
+      | \bintricate\b
+      | \binterplay\b
+      | \bzeitgeist\b
+      | \bimpactful\b
+      | \bparamount\b
+      | \bspearhead\b
+      | \bleverage\b
+      | \bplethora\b
+      | \bshowcase\b
+      | \benduring\b
+      | \bhallmark\b
+      | \bpinnacle\b
+      | \bfrontier\b
+      | \bscalable\b
+      | \bcommence\b
+      | \bendeavor\b
+      | \bprofound\b
+      | \brenowned\b
+      | \bcatalyze\b
+      | \bchampion\b
+      | \belevate\b
+      | \bunleash\b
+      | \bjourney\b
+      | \benhance\b
+      | \bharness\b
+      | \bsynergy\b
+      | \bempower\b
+      | \bnuanced\b
+      | \bdynamic\b
+      | \butilize\b
+      | \bamplify\b
+      | \brobust\b
+      | \bfoster\b
+      | \bgarner\b
+      | \bmyriad\b
+      | \bunlock\b
+      | \bembark\b
+      | \bpropel\b
+      | \brealm\b
+      | \bnexus\b
+      )'
 
   - id: fix-padding
     languages: [generic]

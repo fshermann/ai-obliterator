@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import difflib
+import json
 import shutil
 import subprocess
 import sys
@@ -66,7 +67,7 @@ def main() -> int:
                     )
                 )
                 return 1
-    return 0
+    return _check_phrases(semgrep)
 
 
 def _semgrep_command() -> list[str]:
@@ -80,6 +81,81 @@ def _semgrep_command() -> list[str]:
             if candidate.is_file():
                 return [str(candidate)]
     return ["semgrep"]
+
+
+def _check_phrases(semgrep: list[str]) -> int:
+    source = ROOT / "samples" / "phrases.py"
+    expected = _phrase_sections(source)
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / source.name
+        shutil.copyfile(source, target)
+        completed = subprocess.run(
+            [
+                *semgrep,
+                "scan",
+                "--config",
+                str(RULES),
+                "--json",
+                "--quiet",
+                "--metrics=off",
+                str(target),
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+    if completed.returncode not in (0, 1):
+        sys.stderr.write(completed.stderr)
+        return completed.returncode
+    findings = json.loads(completed.stdout)["results"]
+    by_line: dict[int, list[dict]] = {}
+    for finding in findings:
+        by_line.setdefault(finding["start"]["line"], []).append(finding)
+    failed = False
+    for line, text in expected["ERRORS"]:
+        rules = _rules(by_line.get(line, []))
+        if text == "del" "ve into":
+            wanted = {"no-ai-phrase"}
+        else:
+            wanted = {"ai-phrase"}
+        if rules != wanted:
+            sys.stderr.write(f"{source.name}:{line}: {text!r} matched {sorted(rules)}, wanted {sorted(wanted)}\n")
+            failed = True
+    for line, text in expected["WARNINGS"]:
+        rules = _rules(by_line.get(line, []))
+        if text.casefold() == "in the ever" "-evolving":
+            wanted = {"ai-wording", "ai-phrase"}
+        else:
+            wanted = {"ai-wording"}
+        if "\u2019" in text:
+            wanted.add("smart-single-quotes")
+        if rules != wanted:
+            sys.stderr.write(f"{source.name}:{line}: {text!r} matched {sorted(rules)}, wanted {sorted(wanted)}\n")
+            failed = True
+    for line, text in expected["CLEAN"]:
+        rules = _rules(by_line.get(line, []))
+        if rules:
+            sys.stderr.write(f"{source.name}:{line}: {text!r} matched {sorted(rules)}\n")
+            failed = True
+    return 1 if failed else 0
+
+
+def _phrase_sections(path: Path) -> dict[str, list[tuple[int, str]]]:
+    sections: dict[str, list[tuple[int, str]]] = {"ERRORS": [], "WARNINGS": [], "CLEAN": []}
+    current = None
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        stripped = line.strip()
+        if stripped.endswith("= ("):
+            current = stripped.split("=", 1)[0].strip()
+            continue
+        if current is None or not (stripped.startswith('"') and stripped.endswith('",')):
+            continue
+        sections[current].append((number, stripped[1:-2]))
+    return sections
+
+
+def _rules(findings: list[dict]) -> set[str]:
+    return {finding["check_id"].rsplit(".", 1)[-1] for finding in findings}
 
 
 def _snapshot(directory: Path) -> dict[str, bytes]:

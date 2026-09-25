@@ -20,8 +20,11 @@ jobs:
       - name: Install
         run: python -m pip install -e .
 
-      - name: Check Python and JavaScript
-        run: semgrep scan --config semgrep/ai-artifacts.yml --error --metrics=off .
+      - name: Report wording warnings
+        run: semgrep scan --config semgrep/ai-artifacts.yml --severity WARNING --metrics=off .
+
+      - name: Check for errors
+        run: semgrep scan --config semgrep/ai-artifacts.yml --severity ERROR --error --metrics=off .
 
       - name: Sample fix pipeline
         run: python samples/pipeline.py

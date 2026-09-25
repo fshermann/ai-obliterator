@@ -2,15 +2,16 @@
 
 Semgrep rules that strip AI writing artifacts from Python, JavaScript,
 TypeScript, and Terraform. One ruleset, `semgrep/ai-artifacts.yml`, covers
-all of them. `check` is
-`semgrep scan --error`. `fix` is `semgrep scan --autofix`, run until the files
-stop changing.
+all of them. Errors fail `semgrep scan --severity ERROR --error`. Warnings are
+reported with `--severity WARNING` and do not fail that check. `fix` is
+`semgrep scan --autofix`, run until the files stop changing.
 
 ## Usage
 
 ```sh
 python -m pip install -e .
-semgrep scan --config semgrep/ai-artifacts.yml --error --metrics=off .
+semgrep scan --config semgrep/ai-artifacts.yml --severity WARNING --metrics=off .
+semgrep scan --config semgrep/ai-artifacts.yml --severity ERROR --error --metrics=off .
 semgrep scan --config semgrep/ai-artifacts.yml --autofix --metrics=off .
 semgrep scan --config semgrep/ai-artifacts.yml --autofix --metrics=off .
 ```
@@ -20,8 +21,9 @@ fix, so the em dash and non-breaking space replacements are padded with word
 joiners and a follow-up rule deletes that padding. It also finishes emoji
 sequences whose joiners were removed by the zero-width rule.
 
-Semgrep exits 1 when `--error` finds a match. A bad config or an unreadable
-target is a Semgrep error exit.
+`--error` exits 1 when a reported finding remains. Limit it with
+`--severity ERROR` so wording warnings stay visible without failing the check.
+A bad config or an unreadable target is a Semgrep error exit.
 
 ## Rules
 
@@ -42,8 +44,43 @@ is included as `.ts`, `.tsx`, `.mts`, and `.cts`.
 | `nbsp` | U+00A0 | space |
 | `zero-width` | U+200B U+200C U+200D U+FEFF | empty |
 | `emoji` | emoji and pictographs, including ZWJ sequences | empty |
-| `no-ai-phrase` | `delve\s+into` | `look at` |
+| `no-ai-phrase` | `delve into` | `look at` |
+| `ai-phrase` | blocked AI phrases below | report only |
+| `ai-wording` | warning phrases below | report only |
 | `fix-padding` | U+2060 | empty |
+
+`ai-phrase` is an error. `ai-wording` is a warning. Matches are case-insensitive.
+`holistic` and `multifaceted` are errors. `delve into` is rewritten to `look at`
+and is not also reported as a bare `delve`. The other phrases are reported and
+left in place.
+
+Errors: delve, delve into, tapestry, rich tapestry, testament to, a testament to,
+multifaceted, paradigm shift, ever-evolving, cutting-edge, state-of-the-art,
+game-changer, groundbreaking, unprecedented, unparalleled, transformative,
+revolutionary, in today's fast-paced world, navigate the complexities,
+navigating the landscape, a beacon of, at the forefront of, plays a pivotal role,
+pivotal, holistic, seamless, seamlessly.
+
+Warnings: robust, leverage, leveraging, foster, garner, plethora, myriad,
+comprehensive, underscore, underscores, showcase, elevate, unlock, unleash,
+embark, journey, realm, landscape, intricate, intricacies, meticulous, enduring,
+enhance, interplay, noteworthy, harness, cornerstone, hallmark, nexus, zeitgeist,
+pinnacle, frontier, trajectory, synergy, empower, streamline, impactful,
+actionable, scalable, nuanced, dynamic, innovative, facilitate, utilize,
+commence, endeavor, profound, remarkable, exceptional, paramount, renowned,
+spearhead, catalyze, propel, amplify, champion, it's important to note that,
+it is important to note that, it's worth noting that, it is worth noting that,
+it's worth considering, it is worth considering, in conclusion, overall,
+ultimately, furthermore, moreover, additionally, that being said, with that in
+mind, in today's, in the ever-evolving, as we navigate, when it comes to, at the
+end of the day, building on this, taking this a step further, this highlights,
+this underscores, this demonstrates, this serves as, a key consideration is, one
+of the most important, there are several factors, there are a number of, on the
+one hand, on the other hand, not only ... but also.
+
+`Overall,`, `Ultimately,`, `Furthermore,`, `Moreover,`, and `Additionally,` keep
+the comma. `not only … but also` allows a short gap between the two halves.
+`In the ever-evolving` warns, and `ever-evolving` inside it is still an error.
 
 The `samples/before.*` fixtures are excluded so the repository check stays
 clean. Every other matching source file is included.
