@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "semgrep" / "ai-artifacts.yml"
-FIXTURES = ("before.py", "before.js")
+FIXTURES = ("before.py", "before.js", "before.ts", "before.tf")
 
 
 def main() -> int:

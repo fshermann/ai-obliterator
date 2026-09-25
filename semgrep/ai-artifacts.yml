@@ -11,9 +11,18 @@ rules:
         - "*.jsx"
         - "*.mjs"
         - "*.cjs"
+        - "*.ts"
+        - "*.tsx"
+        - "*.mts"
+        - "*.cts"
+        - "*.tf"
+        - "*.tfvars"
+        - "*.hcl"
       exclude:
         - "/samples/before.py"
         - "/samples/before.js"
+        - "/samples/before.ts"
+        - "/samples/before.tf"
     pattern-regex: '\x{2014}'
     fix: "\u2060 - \u2060"
 
