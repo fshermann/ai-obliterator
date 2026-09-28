@@ -32,6 +32,11 @@ rules:
         - "/samples/before.tf"
         - "/samples/before.cpp"
         - "/samples/phrases.py"
+        - "/samples/comments.py"
+        - "/samples/comments.js"
+        - "/samples/comments.ts"
+        - "/samples/comments.tf"
+        - "/samples/comments.cpp"
     pattern-regex: '\x{2014}'
     fix: "\u2060 - \u2060"
 
@@ -252,3 +257,31 @@ rules:
     paths: *targets
     pattern-regex: '\x{2060}'
     fix: ""
+
+  - id: long-line-comment
+    languages: [generic]
+    severity: ERROR
+    message: Consecutive single-line comments longer than 3 lines are not allowed. Put obliterator-allow in the comment to keep it.
+    paths: *targets
+    patterns:
+      - pattern-regex: '(?m)^[ \t]*(?://|#(?![A-Za-z_$][\w$]*\s*[=(:;.]))[^\n]*(?:\n[ \t]*(?://|#(?![A-Za-z_$][\w$]*\s*[=(:;.]))[^\n]*){3,}'
+      - pattern-not-regex: 'obliterator-allow'
+
+  - id: long-block-comment
+    languages: [generic]
+    severity: ERROR
+    message: A block comment or docstring longer than 3 lines is not allowed. Put obliterator-allow in the comment to keep it.
+    paths: *targets
+    pattern-either:
+      - patterns:
+          - pattern-regex: '(?m)^[ \t]*/\*(?:(?!\*/)[\s\S])*\n(?:(?!\*/)[\s\S])*\n(?:(?!\*/)[\s\S])*\n(?:(?!\*/)[\s\S])*?\*/'
+          - pattern-not-regex: 'obliterator-allow'
+      - patterns:
+          - pattern-regex: '(?m)^(?P<PRE>[^\n]*?)(?P<BODY>"""(?:(?!""")[\s\S])*?"""|\x27\x27\x27(?:(?!\x27\x27\x27)[\s\S])*?\x27\x27\x27)'
+          - metavariable-regex:
+              metavariable: $PRE
+              regex: '^[ \t]*(?:[rRuUbBfF]{1,2})?$'
+          - metavariable-regex:
+              metavariable: $BODY
+              regex: '[^\n]*\n[^\n]*\n[^\n]*\n'
+          - pattern-not-regex: 'obliterator-allow'

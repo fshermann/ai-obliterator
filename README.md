@@ -4,7 +4,8 @@ Semgrep rules that strip AI writing artifacts from Python, JavaScript,
 TypeScript, Terraform, and C++. One ruleset, `semgrep/ai-artifacts.yml`, covers
 all of them. Errors fail `semgrep scan --severity ERROR --error`. Warnings are
 reported with `--severity WARNING` and do not fail that check. `fix` is
-`semgrep scan --autofix`, run until the files stop changing.
+`semgrep scan --autofix`, run until the files stop changing. A comment longer
+than three lines is also an error unless it contains `obliterator-allow`.
 
 ## Usage
 
@@ -49,6 +50,8 @@ is included as `.ts`, `.tsx`, `.mts`, and `.cts`. C++ is included as `.cpp`,
 | `ai-phrase` | blocked AI phrases below | report only |
 | `ai-wording` | warning phrases below | report only |
 | `fix-padding` | U+2060 | empty |
+| `long-line-comment` | 4 or more consecutive `#` or `//` lines | report only |
+| `long-block-comment` | a docstring or block comment of 4 or more lines | report only |
 
 `ai-phrase` is an error. `ai-wording` is a warning. Matches are case-insensitive.
 `holistic` and `multifaceted` are errors. `delve into` is rewritten to `look at`
@@ -86,6 +89,54 @@ the comma. `not only … but also` allows a short gap between the two halves.
 The `samples/before.*` fixtures are excluded so the repository check stays
 clean. Every other matching source file is included.
 
+## Long comments
+
+`long-line-comment` and `long-block-comment` are errors. Three lines are
+allowed. Four or more fail `semgrep scan --severity ERROR --error`.
+
+A single-line run is consecutive lines whose first non-space characters are
+`#` or `//`. A blank line starts a new run. Those are the single-line comment
+syntaxes of Python, JavaScript, TypeScript, Terraform, and C++.
+
+A block comment is a `/* */` comment whose `/*` starts the line, or a `"""` /
+`'''` block, including a docstring, whose opening quotes start the line.
+An optional Python string prefix such as `r` may sit in front of the quotes.
+A triple-quoted string that shares its opening line with other code is left
+alone. Inside the block, three lines are allowed and the fourth line fails.
+
+Put `obliterator-allow` inside the comment to keep that comment. The token
+does not suppress other rules.
+
+```python
+# obliterator-allow
+# kept on purpose
+# across four
+# lines
+```
+
+```python
+"""obliterator-allow
+Kept on purpose.
+This docstring is
+four lines long.
+"""
+```
+
+```javascript
+// obliterator-allow
+// kept
+// on
+// purpose
+```
+
+```javascript
+/* obliterator-allow
+   kept on purpose
+   across four
+   lines
+*/
+```
+
 ## Sample pipeline
 
 `.github/workflows/obliterator.yml` installs this project, scans the
@@ -97,7 +148,11 @@ python samples/pipeline.py
 
 That script copies the fixtures, autofixes them, checks them, and compares the
 result with `samples/after.py`, `samples/after.js`, `samples/after.ts`,
-`samples/after.tf`, and `samples/after.cpp`.
+`samples/after.tf`, and `samples/after.cpp`. It also checks
+`samples/comments.py`, `samples/comments.js`, `samples/comments.ts`,
+`samples/comments.tf`, and `samples/comments.cpp` for long runs, three-line
+runs, and `obliterator-allow`. Those fixtures are excluded from the repository
+scan, same as `samples/phrases.py`.
 
 ## Project layout
 
