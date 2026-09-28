@@ -1,7 +1,7 @@
 # ai-obliterator
 
 Semgrep rules that strip AI writing artifacts from Python, JavaScript,
-TypeScript, and Terraform. One ruleset, `semgrep/ai-artifacts.yml`, covers
+TypeScript, Terraform, and C++. One ruleset, `semgrep/ai-artifacts.yml`, covers
 all of them. Errors fail `semgrep scan --severity ERROR --error`. Warnings are
 reported with `--severity WARNING` and do not fail that check. `fix` is
 `semgrep scan --autofix`, run until the files stop changing.
@@ -28,9 +28,10 @@ A bad config or an unreadable target is a Semgrep error exit.
 ## Rules
 
 The rules use Semgrep generic mode, limited to Python, JavaScript, TypeScript,
-and Terraform paths, so the same text replacement applies in code, strings,
+Terraform, and C++ paths, so the same text replacement applies in code, strings,
 and comments. Terraform is included as `.tf`, `.tfvars`, and `.hcl`. TypeScript
-is included as `.ts`, `.tsx`, `.mts`, and `.cts`.
+is included as `.ts`, `.tsx`, `.mts`, and `.cts`. C++ is included as `.cpp`,
+`.cc`, `.cxx`, `.h`, `.hpp`, `.hh`, and `.hxx`.
 
 | id | match | replacement |
 |---|---|---|
@@ -95,8 +96,8 @@ python samples/pipeline.py
 ```
 
 That script copies the fixtures, autofixes them, checks them, and compares the
-result with `samples/after.py`, `samples/after.js`, `samples/after.ts`, and
-`samples/after.tf`.
+result with `samples/after.py`, `samples/after.js`, `samples/after.ts`,
+`samples/after.tf`, and `samples/after.cpp`.
 
 ## Project layout
 
