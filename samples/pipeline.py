@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RULES = ROOT / "semgrep" / "ai-artifacts.yml"
 FIXTURES = ("before.py", "before.js", "before.ts", "before.tf", "before.cpp")
+COMMENT_FIXTURES = ("comments.py", "comments.js", "comments.ts", "comments.tf", "comments.cpp")
 
 
 def main() -> int:
@@ -67,7 +68,7 @@ def main() -> int:
                     )
                 )
                 return 1
-    return _check_phrases(semgrep)
+    return _check_phrases(semgrep) or _check_comments(semgrep)
 
 
 def _semgrep_command() -> list[str]:
@@ -156,6 +157,67 @@ def _phrase_sections(path: Path) -> dict[str, list[tuple[int, str]]]:
 
 def _rules(findings: list[dict]) -> set[str]:
     return {finding["check_id"].rsplit(".", 1)[-1] for finding in findings}
+
+
+def _check_comments(semgrep: list[str]) -> int:
+    failed = False
+    for name in COMMENT_FIXTURES:
+        source = ROOT / "samples" / name
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / source.name
+            shutil.copyfile(source, target)
+            completed = subprocess.run(
+                [
+                    *semgrep,
+                    "scan",
+                    "--config",
+                    str(RULES),
+                    "--json",
+                    "--quiet",
+                    "--metrics=off",
+                    str(target),
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+            )
+        if completed.returncode not in (0, 1):
+            sys.stderr.write(completed.stderr)
+            return completed.returncode
+        findings = json.loads(completed.stdout)["results"]
+        lines = source.read_text(encoding="utf-8").splitlines()
+        covered: dict[int, set[str]] = {}
+        for finding in findings:
+            rule = finding["check_id"].rsplit(".", 1)[-1]
+            if rule not in {"long-line-comment", "long-block-comment"}:
+                sys.stderr.write(f"{name}:{finding['start']['line']}: unexpected {rule}\n")
+                failed = True
+                continue
+            if finding["extra"]["severity"] != "ERROR":
+                sys.stderr.write(
+                    f"{name}:{finding['start']['line']}: {rule} severity {finding['extra']['severity']}\n"
+                )
+                failed = True
+            start = finding["start"]["line"]
+            end = finding["end"]["line"]
+            for number in range(start, end + 1):
+                covered.setdefault(number, set()).add(rule)
+            token = "LONG_LINE" if rule == "long-line-comment" else "LONG_BLOCK"
+            if token not in "\n".join(lines[start - 1:end]):
+                sys.stderr.write(f"{name}:{start}: unexpected {rule}\n")
+                failed = True
+        for number, text in enumerate(lines, start=1):
+            rules = covered.get(number, set())
+            if "LONG_LINE" in text and "long-line-comment" not in rules:
+                sys.stderr.write(f"{name}:{number}: {text!r} missed long-line-comment\n")
+                failed = True
+            if "LONG_BLOCK" in text and "long-block-comment" not in rules:
+                sys.stderr.write(f"{name}:{number}: {text!r} missed long-block-comment\n")
+                failed = True
+            if ("CLEAN_" in text or "ALLOW_" in text) and rules:
+                sys.stderr.write(f"{name}:{number}: {text!r} matched {sorted(rules)}\n")
+                failed = True
+    return 1 if failed else 0
 
 
 def _snapshot(directory: Path) -> dict[str, bytes]:
