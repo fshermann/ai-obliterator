@@ -37,6 +37,8 @@ rules:
         - "/samples/comments.ts"
         - "/samples/comments.tf"
         - "/samples/comments.cpp"
+        - "/samples/style.py"
+        - "/samples/long_file.py"
     pattern-regex: '\x{2014}'
     fix: "\u2060 - \u2060"
 

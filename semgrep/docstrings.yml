@@ -1,0 +1,121 @@
+rules:
+  - id: missing-docstring
+    languages: [python]
+    severity: ERROR
+    message: Add a docstring of 1 to 3 lines with a description, Args, and Returns.
+    paths: &python_paths
+      include:
+        - "*.py"
+        - "*.pyi"
+      exclude: &style_excludes
+        - "/samples/before.py"
+        - "/samples/before.js"
+        - "/samples/before.ts"
+        - "/samples/before.tf"
+        - "/samples/before.cpp"
+        - "/samples/phrases.py"
+        - "/samples/comments.py"
+        - "/samples/comments.js"
+        - "/samples/comments.ts"
+        - "/samples/comments.tf"
+        - "/samples/comments.cpp"
+        - "/samples/style.py"
+        - "/samples/long_file.py"
+    patterns:
+      - pattern-either:
+          - pattern: |
+              def $F(...):
+                ...
+          - pattern: |
+              async def $F(...):
+                ...
+      - pattern-not: |
+          def $F(...):
+            """..."""
+            ...
+      - pattern-not: |
+          async def $F(...):
+            """..."""
+            ...
+      - metavariable-regex:
+          metavariable: $F
+          regex: '^(?!test_).+'
+      - pattern-not-regex: obliterator-allow
+
+  - id: docstring-description-only
+    languages: [python]
+    severity: ERROR
+    message: Docstring needs Args and Returns, not only a description.
+    paths: *python_paths
+    patterns:
+      - pattern-either:
+          - pattern: |
+              def $F(...):
+                """$DOC"""
+                ...
+          - pattern: |
+              async def $F(...):
+                """$DOC"""
+                ...
+      - metavariable-regex:
+          metavariable: $F
+          regex: '^(?!test_).+'
+      - metavariable-regex:
+          metavariable: $DOC
+          regex: '(?s)^(?:(?!Args:).)*$'
+      - metavariable-regex:
+          metavariable: $DOC
+          regex: '(?s)^(?:(?!Returns:).)*$'
+      - pattern-not-regex: obliterator-allow
+
+  - id: docstring-missing-args
+    languages: [python]
+    severity: ERROR
+    message: "Docstring needs an Args mention. Use Args: none when there are none."
+    paths: *python_paths
+    patterns:
+      - pattern-either:
+          - pattern: |
+              def $F(...):
+                """$DOC"""
+                ...
+          - pattern: |
+              async def $F(...):
+                """$DOC"""
+                ...
+      - metavariable-regex:
+          metavariable: $F
+          regex: '^(?!test_).+'
+      - metavariable-regex:
+          metavariable: $DOC
+          regex: '(?s)^(?=.*Returns:).*$'
+      - metavariable-regex:
+          metavariable: $DOC
+          regex: '(?s)^(?:(?!Args:).)*$'
+      - pattern-not-regex: obliterator-allow
+
+  - id: docstring-missing-returns
+    languages: [python]
+    severity: ERROR
+    message: "Docstring needs a Returns mention. Use Returns: none when there is none."
+    paths: *python_paths
+    patterns:
+      - pattern-either:
+          - pattern: |
+              def $F(...):
+                """$DOC"""
+                ...
+          - pattern: |
+              async def $F(...):
+                """$DOC"""
+                ...
+      - metavariable-regex:
+          metavariable: $F
+          regex: '^(?!test_).+'
+      - metavariable-regex:
+          metavariable: $DOC
+          regex: '(?s)^(?=.*Args:).*$'
+      - metavariable-regex:
+          metavariable: $DOC
+          regex: '(?s)^(?:(?!Returns:).)*$'
+      - pattern-not-regex: obliterator-allow

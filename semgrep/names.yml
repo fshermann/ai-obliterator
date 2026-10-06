@@ -1,0 +1,192 @@
+rules:
+  - id: short-name
+    languages: [python]
+    severity: ERROR
+    message: Names shorter than 4 characters are not allowed outside the allowlist (self, cls, id, and _).
+    paths: &python_paths
+      include:
+        - "*.py"
+        - "*.pyi"
+      exclude:
+
+        - "/samples/before.py"
+        - "/samples/before.js"
+        - "/samples/before.ts"
+        - "/samples/before.tf"
+        - "/samples/before.cpp"
+        - "/samples/phrases.py"
+        - "/samples/comments.py"
+        - "/samples/comments.js"
+        - "/samples/comments.ts"
+        - "/samples/comments.tf"
+        - "/samples/comments.cpp"
+        - "/samples/style.py"
+        - "/samples/long_file.py"
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-regex: '(?m)^[ \t]*(?!_*(?:cls|id)?[ \t]*(?:[:=]|$))[A-Za-z_][A-Za-z0-9_]{0,2}[ \t]*(?::[^\n=]+)?=[^=\n].*$'
+              - pattern-not-inside: $CALL(...)
+              - pattern-not-inside: '"""..."""'
+              - pattern-not-inside: "'''...'''"
+
+          - patterns:
+              - pattern-either:
+                  - pattern: |
+                      def $NAME(...):
+                        ...
+                  - pattern: |
+                      def $FUNC(..., $NAME, ...):
+                        ...
+                  - pattern: |
+                      def $FUNC(..., $NAME: $TYPE, ...):
+                        ...
+                  - pattern: |
+                      def $FUNC(..., $NAME=$DEFAULT, ...):
+                        ...
+                  - pattern: |
+                      def $FUNC(..., *$NAME, ...):
+                        ...
+                  - pattern: |
+                      def $FUNC(..., **$NAME, ...):
+                        ...
+                  - pattern: |
+                      async def $NAME(...):
+                        ...
+                  - pattern: |
+                      async def $FUNC(..., $NAME, ...):
+                        ...
+                  - pattern: |
+                      async def $FUNC(..., $NAME: $TYPE, ...):
+                        ...
+                  - pattern: |
+                      async def $FUNC(..., $NAME=$DEFAULT, ...):
+                        ...
+                  - pattern: |
+                      async def $FUNC(..., *$NAME, ...):
+                        ...
+                  - pattern: |
+                      async def $FUNC(..., **$NAME, ...):
+                        ...
+                  - pattern: |
+                      class $NAME:
+                        ...
+                  - pattern: |
+                      class $NAME(...):
+                        ...
+                  - pattern: |
+                      for $NAME in ...:
+                        ...
+                  - pattern: |
+                      for $NAME, ... in ...:
+                        ...
+                  - pattern: |
+                      async for $NAME in ...:
+                        ...
+                  - pattern: |
+                      with $CTX as $NAME:
+                        ...
+                  - pattern: |
+                      async with $CTX as $NAME:
+                        ...
+                  - pattern: |
+                      try:
+                        ...
+                      except $ERR as $NAME:
+                        ...
+                  - pattern: |
+                      import $MOD as $NAME
+                  - pattern: |
+                      from $MOD import $ITEM as $NAME
+                  - pattern: |
+                      $NAME, ... = ...
+                  - pattern: |
+                      $NAME: $TYPE = ...
+              - metavariable-regex:
+                  metavariable: $NAME
+                  regex: '^_*+(?!(?:cls|id)?$)[A-Za-z0-9_]{1,3}$'
+      - pattern-not-regex: obliterator-allow
+  - id: short-token
+    languages: [python]
+    severity: ERROR
+    message: An underscore-separated token of 1 or 2 characters is not allowed outside the allowlist (id, cls).
+    paths: *python_paths
+    patterns:
+      - pattern-either:
+
+          - patterns:
+              - pattern-either:
+                  - pattern: |
+                      def $NAME(...):
+                        ...
+                  - pattern: |
+                      def $FUNC(..., $NAME, ...):
+                        ...
+                  - pattern: |
+                      def $FUNC(..., $NAME: $TYPE, ...):
+                        ...
+                  - pattern: |
+                      def $FUNC(..., $NAME=$DEFAULT, ...):
+                        ...
+                  - pattern: |
+                      def $FUNC(..., *$NAME, ...):
+                        ...
+                  - pattern: |
+                      def $FUNC(..., **$NAME, ...):
+                        ...
+                  - pattern: |
+                      async def $NAME(...):
+                        ...
+                  - pattern: |
+                      async def $FUNC(..., $NAME, ...):
+                        ...
+                  - pattern: |
+                      async def $FUNC(..., $NAME: $TYPE, ...):
+                        ...
+                  - pattern: |
+                      async def $FUNC(..., $NAME=$DEFAULT, ...):
+                        ...
+                  - pattern: |
+                      async def $FUNC(..., *$NAME, ...):
+                        ...
+                  - pattern: |
+                      async def $FUNC(..., **$NAME, ...):
+                        ...
+                  - pattern: |
+                      class $NAME:
+                        ...
+                  - pattern: |
+                      class $NAME(...):
+                        ...
+                  - pattern: |
+                      for $NAME in ...:
+                        ...
+                  - pattern: |
+                      for $NAME, ... in ...:
+                        ...
+                  - pattern: |
+                      async for $NAME in ...:
+                        ...
+                  - pattern: |
+                      with $CTX as $NAME:
+                        ...
+                  - pattern: |
+                      async with $CTX as $NAME:
+                        ...
+                  - pattern: |
+                      try:
+                        ...
+                      except $ERR as $NAME:
+                        ...
+                  - pattern: |
+                      import $MOD as $NAME
+                  - pattern: |
+                      from $MOD import $ITEM as $NAME
+                  - pattern: |
+                      $NAME, ... = ...
+                  - pattern: |
+                      $NAME: $TYPE = ...
+              - metavariable-regex:
+                  metavariable: $NAME
+                  regex: '^(?=.{4,})(?=.*_)_*(?:[A-Za-z0-9]+_)*?(?!(?:id|cls)(?:_|$))[A-Za-z0-9]{1,2}(?:_|$)'
+      - pattern-not-regex: obliterator-allow
