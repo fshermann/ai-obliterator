@@ -1,4 +1,5 @@
 def note() -> str:
+    """Return the cleaned sample note. Args: none. Returns: str text."""
     return (
         'The model - helpful, tireless - likes to look at topics.\n'
         'It uses "smart quotes" and an ellipsis...\n'

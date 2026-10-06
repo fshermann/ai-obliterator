@@ -1,0 +1,216 @@
+rules:
+  - id: repeated-literal-asserts
+    languages: [python]
+    severity: ERROR
+    message: These asserts differ only by literals. Parameterize the test.
+    paths: &python_paths
+      include:
+        - "*.py"
+        - "*.pyi"
+      exclude: &style_excludes
+        - "/samples/before.py"
+        - "/samples/before.js"
+        - "/samples/before.ts"
+        - "/samples/before.tf"
+        - "/samples/before.cpp"
+        - "/samples/phrases.py"
+        - "/samples/comments.py"
+        - "/samples/comments.js"
+        - "/samples/comments.ts"
+        - "/samples/comments.tf"
+        - "/samples/comments.cpp"
+        - "/samples/style.py"
+        - "/samples/long_file.py"
+    patterns:
+      - pattern: |
+          def $T(...):
+            ...
+            assert $F($A) == $R1
+            assert $F($B) == $R2
+            assert $F($C) == $R3
+            ...
+      - metavariable-regex:
+          metavariable: $T
+          regex: '^test_'
+      - metavariable-regex:
+          metavariable: $A
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - metavariable-regex:
+          metavariable: $B
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - metavariable-regex:
+          metavariable: $C
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - metavariable-regex:
+          metavariable: $R1
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - metavariable-regex:
+          metavariable: $R2
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - metavariable-regex:
+          metavariable: $R3
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - pattern-not-regex: obliterator-allow
+
+  - id: sibling-literal-tests
+    languages: [python]
+    severity: ERROR
+    message: These tests share one assert and differ by literals. Parameterize them.
+    paths: *python_paths
+    patterns:
+      - pattern: |
+          def $T1(...):
+            assert $F($A) == $R1
+          def $T2(...):
+            assert $F($B) == $R2
+          def $T3(...):
+            assert $F($C) == $R3
+      - metavariable-regex:
+          metavariable: $T1
+          regex: '^test_'
+      - metavariable-regex:
+          metavariable: $T2
+          regex: '^test_'
+      - metavariable-regex:
+          metavariable: $T3
+          regex: '^test_'
+      - metavariable-regex:
+          metavariable: $A
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - metavariable-regex:
+          metavariable: $B
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - metavariable-regex:
+          metavariable: $C
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - metavariable-regex:
+          metavariable: $R1
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - metavariable-regex:
+          metavariable: $R2
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - metavariable-regex:
+          metavariable: $R3
+          regex: '^(?:None|True|False|-?\d+(?:\.\d+)?|"[^"]*"|''[^'']*'')$'
+      - pattern-not-regex: obliterator-allow
+
+  - id: wrapper-call
+    languages: [python]
+    severity: ERROR
+    message: This function only calls another function.
+    paths: *python_paths
+    patterns:
+      - pattern-either:
+          - pattern: |
+              def $F(...):
+                return $G(...)
+          - pattern: |
+              def $F(...):
+                $G(...)
+          - pattern: |
+              def $F(...):
+                """..."""
+                return $G(...)
+          - pattern: |
+              def $F(...):
+                """..."""
+                $G(...)
+          - pattern: |
+              async def $F(...):
+                return $G(...)
+          - pattern: |
+              async def $F(...):
+                """..."""
+                return $G(...)
+      - pattern-not-regex: obliterator-allow
+
+  - id: same-body
+    languages: [python]
+    severity: ERROR
+    message: These adjacent functions have the same statement.
+    paths: *python_paths
+    patterns:
+      - pattern-either:
+          - pattern: |
+              def $A(...):
+                $S
+              def $B(...):
+                $S
+          - pattern: |
+              async def $A(...):
+                $S
+              async def $B(...):
+                $S
+          - pattern: |
+              def $A(...):
+                """$D1"""
+                $S
+              def $B(...):
+                """$D2"""
+                $S
+          - pattern: |
+              async def $A(...):
+                """$D1"""
+                $S
+              async def $B(...):
+                """$D2"""
+                $S
+      - pattern-not-regex: obliterator-allow
+
+  - id: builtin-generic
+    languages: [python]
+    severity: ERROR
+    message: Use a builtin generic or the | union syntax instead of this typing alias.
+    paths: *python_paths
+    patterns:
+      - pattern-either:
+          - pattern: from typing import $X
+          - pattern: from typing import $X as $ALIAS
+          - pattern: typing.$X
+      - metavariable-regex:
+          metavariable: $X
+          regex: '^(?:List|Dict|Set|Tuple|FrozenSet|Optional|Union|Type)$'
+      - pattern-not-regex: obliterator-allow
+
+  - id: defensive-handler
+    languages: [python]
+    severity: ERROR
+    message: "try/except is not allowed unless the matched code contains obliterator-allow."
+    paths: *python_paths
+    patterns:
+      - pattern-either:
+          - pattern: |
+              try:
+                ...
+              except ...:
+                ...
+          - pattern: |
+              try:
+                ...
+              except:
+                ...
+      - pattern-not-regex: obliterator-allow
+
+  - id: redundant-type-check
+    languages: [python]
+    severity: ERROR
+    message: This isinstance or type check repeats the name's annotation.
+    paths: *python_paths
+    patterns:
+      - pattern-either:
+          - pattern: isinstance($N, $T)
+          - pattern: type($N) is $T
+          - pattern: type($N) == $T
+          - pattern: type($N) is not $T
+          - pattern: type($N) != $T
+      - pattern-either:
+          - pattern-inside: |
+              def $F(..., $N: $T, ...):
+                ...
+          - pattern-inside: |
+              async def $F(..., $N: $T, ...):
+                ...
+          - pattern-inside: |
+              $N: $T = ...
+              ...
+      - pattern-not-regex: obliterator-allow
